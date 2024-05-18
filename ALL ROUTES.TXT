@@ -1,0 +1,20 @@
+
+_____________________________post methods: ___________________________________________
+            http://localhost:1769/api/stars/create-star/create-new-star
+
+            http://localhost:1769/api/stars/star-bio/create-star-bio
+
+            http://localhost:1769/api/stars/images/create-star-images
+
+            http://localhost:1769/api/stars/albums/create-album
+
+____________________________________________________________________________________________
+
+____________________________get methods: ___________________________________________________
+            http://localhost:1769/api/stars/create-star/get-all-star
+
+            http://localhost:1769/api/stars/
+
+            http://localhost:1769/api/stars/
+            
+            http://localhost:1769/api/stars/
