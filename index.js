@@ -1,3 +1,4 @@
+require('dotenv').config(); // Load environment variables from .env file
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -5,7 +6,7 @@ const app = express();
 const apiRoute = require('./routes/index');
 const mongoDbConfig = require('./config/mongoDbConfig');
 
-const port = 1769
+const port = process.env.PORT || 3000; // Use PORT environment variable or default to 3000
 
 // Call the mongoDbConfig function to establish the database connection
 mongoDbConfig();
