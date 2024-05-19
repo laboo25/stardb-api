@@ -3,7 +3,7 @@
 const express = require('express');
 const router = express.Router();
 const upload = require('../../helper/multerHelpers');
-const createAlbumController = require('../../controller/createAlbumCOntroller');
+const createAlbumController = require('../../controller/createAlbumController');
 const { deleteAlbumController, updateAlbumController } = require('../../controller/modifyAlbumController');
 const getAllAlbums = require('../../controller/getAllAlbums');
 
