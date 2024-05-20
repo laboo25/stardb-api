@@ -3,8 +3,9 @@ const createStarSchema = require('../models/newStarSchema'); // Model for the st
 const cloudinary = require('../config/cloudinaryConfig');
 
 // Function to upload a single image to Cloudinary
-async function uploadToCloudinary(buffer, folder) {
+async function uploadToCloudinary(buffer, albumname) {
     return new Promise((resolve, reject) => {
+        const folder = `albums/${albumname}`; // Dynamically set the folder name based on the album name
         const stream = cloudinary.uploader.upload_stream({ folder: folder }, (error, result) => {
             if (error) {
                 return reject(error);
@@ -52,7 +53,7 @@ async function createAlbumController(req, res) {
             const batchUploads = batchFiles.map(file => {
                 return new Promise(async (resolve, reject) => {
                     try {
-                        const result = await uploadToCloudinary(file.buffer, `albums/${albumname}`);
+                        const result = await uploadToCloudinary(file.buffer, albumname);
                         resolve(result);
                     } catch (error) {
                         reject(error);
@@ -97,3 +98,4 @@ async function createAlbumController(req, res) {
 }
 
 module.exports = createAlbumController;
+        
