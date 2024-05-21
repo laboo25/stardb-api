@@ -1,6 +1,7 @@
 const starImagesSchema = require('../models/starImagesSchema');
 const createStarSchema = require('../models/newStarSchema');
 const cloudinary = require('../config/cloudinaryConfig');
+const mongoose = require('mongoose'); // Import mongoose for ObjectId validation
 
 // Function to create a webp thumbnail URL with max size 300px
 function createThumbnailUrl(url) {
@@ -15,10 +16,18 @@ async function createStarImagesController(req, res) {
     try {
         const { starname: starId, subfolder } = req.body; // Extract starname (ID) and subfolder from request body
 
-        // Fetch the actual star document from the database using the ID
-        const star = await createStarSchema.findById(starId);
-        if (!star) {
-            return res.status(404).json({ message: 'Star not found' });
+        let star = null;
+        if (starId) {
+            // Validate if starId is a valid ObjectId
+            if (!mongoose.Types.ObjectId.isValid(starId)) {
+                return res.status(400).json({ message: 'Invalid star ID' });
+            }
+
+            // Fetch the actual star document from the database using the ID if provided
+            star = await createStarSchema.findById(starId);
+            if (!star) {
+                return res.status(404).json({ message: 'Star not found' });
+            }
         }
 
         // Check if files are present in the request
@@ -34,8 +43,8 @@ async function createStarImagesController(req, res) {
             const batchUploads = batchFiles.map(file => {
                 return new Promise((resolve, reject) => {
                     const stream = cloudinary.uploader.upload_stream({
-                        folder: `images/${subfolder}`,
-                        public_id: `${starId}-images/${file.originalname}`
+                        folder: `images`,
+                        public_id: `${starId || 'generic'}-images/${file.originalname}-${Date.now()}`
                     }, (error, result) => {
                         if (error) {
                             reject(error);
@@ -61,19 +70,21 @@ async function createStarImagesController(req, res) {
 
         // Create a new starImages object
         const newStarImages = new starImagesSchema({
-            starname: starId, // Use the star ID for the starname field in starImagesSchema
+            starname: starId || undefined, // Use the star ID for the starname field in starImagesSchema, or undefined if not provided
             starImages: images,
         });
 
         // Save the new starImages object to the database
         const savedStarImages = await newStarImages.save();
 
-        // Update the corresponding star collection document with the new starImages ID
-        await createStarSchema.findByIdAndUpdate(
-            starId, // Update by star ID
-            { $push: { starImages: savedStarImages._id } }, // Correct the field name
-            { new: true }
-        );
+        if (starId) {
+            // Update the corresponding star collection document with the new starImages ID
+            await createStarSchema.findByIdAndUpdate(
+                starId, // Update by star ID
+                { $push: { starImages: savedStarImages._id } }, // Correct the field name
+                { new: true }
+            );
+        }
 
         res.status(201).json(savedStarImages); // Respond with the saved star images object
     } catch (error) {
