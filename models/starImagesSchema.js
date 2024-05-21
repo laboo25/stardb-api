@@ -4,8 +4,7 @@ const Schema = mongoose.Schema;
 const starImagesSchema = new Schema({
     starname: {
         type: Schema.Types.ObjectId,
-        ref: 'starCollection',
-        required: true
+        ref: 'starList'
     },
     starImages: [{
         imageurl: { type: String, required: true },

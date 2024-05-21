@@ -16,14 +16,14 @@ const createStarSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'StarBio'
     },
-    starImages: [{ // Correct the field name
+    starImages: [{
         type: Schema.Types.ObjectId,
         ref: 'starImage'
     }],
-    staralbums: [{
+    starAlbums: [{
         type: Schema.Types.ObjectId,
         ref: 'starAlbum'
     }]
 });
 
-module.exports = mongoose.model('starCollection', createStarSchema);
+module.exports = mongoose.model('starList', createStarSchema);

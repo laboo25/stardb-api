@@ -1,10 +1,16 @@
 const newStarSchema = require("../models/newStarSchema");
 const cloudinary = require('../config/cloudinaryConfig');
 
-function uploadToCloudinary(buffer, folder, transformations) {
+// Function to upload a single image to Cloudinary with transformations and original file name
+function uploadToCloudinary(buffer, folder, filename, transformations) {
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
-            { folder, transformation: transformations },
+            {
+                folder,
+                public_id: filename.split('.')[0], // Use the original filename without extension
+                transformation: transformations,
+                format: 'webp' // Ensuring the format is webp
+            },
             (error, result) => {
                 if (error) {
                     reject(error);
@@ -13,7 +19,6 @@ function uploadToCloudinary(buffer, folder, transformations) {
                 }
             }
         );
-
         stream.end(buffer);
     });
 }
@@ -32,12 +37,15 @@ async function createStarController(req, res) {
         const avatarResult = await uploadToCloudinary(
             req.files.starprofile[0].buffer,
             'avatars',
-            [{ width: 2000, crop: "limit", format: "webp" }]
+            req.files.starprofile[0].originalname, // Pass original filename
+            [{ width: 2000, crop: "limit" }]
         );
+
         const coverImageResult = await uploadToCloudinary(
             req.files.starcover[0].buffer,
             'covers',
-            [{ width: 500, crop: "limit", format: "webp" }]
+            req.files.starcover[0].originalname, // Pass original filename
+            [{ width: 500, crop: "limit" }]
         );
 
         // Create a new star object with image URLs

@@ -13,7 +13,7 @@ function createThumbnailUrl(url) {
 async function createStarImagesController(req, res) {
     console.log('createStarImagesController');
     try {
-        const { starname: starId } = req.body; // Extract starname (ID) from request body
+        const { starname: starId, subfolder } = req.body; // Extract starname (ID) and subfolder from request body
 
         // Fetch the actual star document from the database using the ID
         const star = await createStarSchema.findById(starId);
@@ -33,7 +33,10 @@ async function createStarImagesController(req, res) {
             const batchFiles = req.files.slice(i, i + 5); // Get the next batch of files
             const batchUploads = batchFiles.map(file => {
                 return new Promise((resolve, reject) => {
-                    const stream = cloudinary.uploader.upload_stream({ folder: 'starImages', public_id: `${starId}-images/${file.originalname}` }, (error, result) => {
+                    const stream = cloudinary.uploader.upload_stream({
+                        folder: `images/${subfolder}`,
+                        public_id: `${starId}-images/${file.originalname}`
+                    }, (error, result) => {
                         if (error) {
                             reject(error);
                         } else {

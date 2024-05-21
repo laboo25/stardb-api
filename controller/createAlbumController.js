@@ -1,12 +1,11 @@
 const albumsSchema = require('../models/albumsSchema');
-const createStarSchema = require('../models/newStarSchema'); // Model for the star collection
+const createStarSchema = require('../models/newStarSchema');  // Model for the star collection
 const cloudinary = require('../config/cloudinaryConfig');
 
 // Function to upload a single image to Cloudinary
-async function uploadToCloudinary(buffer, albumname) {
+async function uploadToCloudinary(buffer, folder, filename) {
     return new Promise((resolve, reject) => {
-        const folder = `albums/${albumname}`; // Dynamically set the folder name based on the album name
-        const stream = cloudinary.uploader.upload_stream({ folder: folder }, (error, result) => {
+        const stream = cloudinary.uploader.upload_stream({ folder: folder, public_id: filename }, (error, result) => {
             if (error) {
                 return reject(error);
             }
@@ -27,7 +26,7 @@ function createThumbnailUrl(url) {
 async function createAlbumController(req, res) {
     console.log('createAlbumController');
     try {
-        const { albumname, starname } = req.body; // Extract album name and star name from request body
+        const { albumname, starname } = req.body;  // Extract album name and star ID from request body
 
         // Log the incoming data to check if they are correctly sent
         console.log('Request body:', req.body);
@@ -37,7 +36,7 @@ async function createAlbumController(req, res) {
             return res.status(400).json({ message: 'Album name is required' });
         }
         if (!starname) {
-            return res.status(400).json({ message: 'Star name is required' });
+            return res.status(400).json({ message: 'Star ID is required' });
         }
 
         // Check if files are present in the request
@@ -45,22 +44,22 @@ async function createAlbumController(req, res) {
             return res.status(400).json({ message: 'No images provided' });
         }
 
-        const uploadQueue = []; // Queue to hold upload promises
+        const uploadQueue = [];  // Queue to hold upload promises
 
         // Upload files in batches of 5
         for (let i = 0; i < req.files.length; i += 5) {
-            const batchFiles = req.files.slice(i, i + 5); // Get the next batch of files
+            const batchFiles = req.files.slice(i, i + 5);  // Get the next batch of files
             const batchUploads = batchFiles.map(file => {
                 return new Promise(async (resolve, reject) => {
                     try {
-                        const result = await uploadToCloudinary(file.buffer, albumname);
+                        const result = await uploadToCloudinary(file.buffer, `albums/${albumname}`, file.originalname);  // Pass the original filename to upload function
                         resolve(result);
                     } catch (error) {
                         reject(error);
                     }
                 });
             });
-            uploadQueue.push(Promise.all(batchUploads)); // Push the batch upload promise to the queue
+            uploadQueue.push(Promise.all(batchUploads));  // Push the batch upload promise to the queue
         }
 
         // Wait for all batches to upload
@@ -70,27 +69,29 @@ async function createAlbumController(req, res) {
         const albumImages = uploadResults.flat().map(result => ({
             imageurl: result.secure_url,
             thumburl: createThumbnailUrl(result.secure_url),
-            tags: result.tags || req.body.tags || [] // Get tags from Cloudinary result or request body
+            tags: result.tags || req.body.tags || []  // Get tags from Cloudinary result or request body
         }));
 
         // Create a new album object
         const newAlbum = new albumsSchema({
             albumname: albumname,
             albumimages: albumImages,
-            starname: starname // Use star name instead of star ID
+            starname: starname  // Directly use the star ID from the request body
         });
 
         // Save the new album object to the database
         const savedAlbum = await newAlbum.save();
 
         // Update the corresponding star collection document with the new album ID
-        await createStarSchema.findOneAndUpdate(
-            { starname: starname }, // Update by star name
-            { $push: { staralbums: savedAlbum._id } }, // Assuming 'staralbums' is the field in the star schema
+        const updateResult = await createStarSchema.findByIdAndUpdate(   // find by id and update
+            starname,  // Update by star ID
+            { $push: { starAlbums: savedAlbum._id } },  // Assuming 'starAlbums' is the field in the star schema
             { new: true }
         );
 
-        res.status(201).json(savedAlbum); // Respond with the saved album object
+        console.log('Update Result:', updateResult);
+
+        res.status(201).json(savedAlbum);  // Respond with the saved album object
     } catch (error) {
         console.error('Error in createAlbumController:', error);
         res.status(500).json({ message: 'Internal Server Error' });
@@ -98,4 +99,3 @@ async function createAlbumController(req, res) {
 }
 
 module.exports = createAlbumController;
-        

@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const albumsSchema = new Schema({
-    albumname: { type: String, required: true },
+    albumname: { type: String },
     albumimages: [{
         imageurl: { type: String },
         thumburl: { type: String },
@@ -10,7 +10,7 @@ const albumsSchema = new Schema({
     }],
     starname: {
         type: Schema.Types.ObjectId,
-        ref: 'starCollection',
+        ref: 'starList',  // Ensure this references the correct model
         required: true
     }
 });

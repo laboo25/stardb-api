@@ -4,7 +4,7 @@ const Schema = mongoose.Schema;
 const starBioSchema = new Schema({
     starname: {
         type: Schema.Types.ObjectId,
-        ref: 'starCollection',
+        ref: 'starList',
         required: true
     },
     aliases: [{ type: String }],
