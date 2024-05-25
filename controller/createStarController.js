@@ -27,32 +27,43 @@ async function createStarController(req, res) {
     try {
         const { starname } = req.body; // Extract data from request body
 
-        // Check if avatar and coverImage files exist in request
-        if (!req.files || !req.files.starprofile || !req.files.starcover) {
-            console.log('Avatar and coverImage files are not present in the request');
-            return res.status(400).json({ message: 'Avatar and coverImage files are required' });
+        // Check for duplicate starname
+        const duplicate = await newStarSchema.findOne({ starname });
+        if (duplicate) {
+            return res.status(409).json({ message: 'Star already exists' });
         }
 
-        // Upload images to Cloudinary with transformations
-        const avatarResult = await uploadToCloudinary(
-            req.files.starprofile[0].buffer,
-            'avatars',
-            req.files.starprofile[0].originalname, // Pass original filename
-            [{ width: 2000, crop: "limit" }]
-        );
+        // Initialize variables for image URLs
+        let starprofileUrl = '';
+        let starcoverUrl = '';
 
-        const coverImageResult = await uploadToCloudinary(
-            req.files.starcover[0].buffer,
-            'covers',
-            req.files.starcover[0].originalname, // Pass original filename
-            [{ width: 500, crop: "limit" }]
-        );
+        // Upload avatar image if it exists
+        if (req.files && req.files.starprofile) {
+            const avatarResult = await uploadToCloudinary(
+                req.files.starprofile[0].buffer,
+                'avatars',
+                req.files.starprofile[0].originalname, // Pass original filename
+                [{ width: 2000, crop: "limit" }]
+            );
+            starprofileUrl = avatarResult.secure_url;
+        }
+
+        // Upload cover image if it exists
+        if (req.files && req.files.starcover) {
+            const coverImageResult = await uploadToCloudinary(
+                req.files.starcover[0].buffer,
+                'covers',
+                req.files.starcover[0].originalname, // Pass original filename
+                [{ width: 500, crop: "limit" }]
+            );
+            starcoverUrl = coverImageResult.secure_url;
+        }
 
         // Create a new star object with image URLs
         const newStar = new newStarSchema({
             starname,
-            starprofile: avatarResult.secure_url,
-            starcover: coverImageResult.secure_url,
+            starprofile: starprofileUrl,
+            starcover: starcoverUrl,
         });
 
         // Save the new star object to the database
