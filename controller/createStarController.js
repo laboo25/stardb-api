@@ -1,13 +1,15 @@
 const newStarSchema = require("../models/newStarSchema");
 const cloudinary = require('../config/cloudinaryConfig');
+const path = require('path');
 
 // Function to upload a single image to Cloudinary with transformations and original file name
 function uploadToCloudinary(buffer, folder, filename, transformations) {
     return new Promise((resolve, reject) => {
+        const sanitizedFilename = path.parse(filename).name.trim().replace(/\s+/g, '_');
         const stream = cloudinary.uploader.upload_stream(
             {
                 folder,
-                public_id: filename.split('.')[0], // Use the original filename without extension
+                public_id: sanitizedFilename, // Use the sanitized filename without extension
                 transformation: transformations,
                 format: 'webp' // Ensuring the format is webp
             },
