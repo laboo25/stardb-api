@@ -13,8 +13,9 @@ ________________________________________________________________________________
 ____________________________get methods: ___________________________________________________
             http://localhost:1769/api/stars/create-star/get-all-star
 
-            http://localhost:1769/api/stars/
+            http://localhost:1769/api/stars/star-bio/get-all-bio
 
-            http://localhost:1769/api/stars/
+            http://localhost:1769/api/stars/albums/get-all-albums
             
             http://localhost:1769/api/stars/
+https://stardb-api.onrender.com/api/stars/star-bio/get-all-bio

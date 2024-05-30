@@ -1,12 +1,16 @@
 const albumsSchema = require('../models/albumsSchema');
 const createStarSchema = require('../models/newStarSchema');  // Model for the star collection
 const cloudinary = require('../config/cloudinaryConfig');
-const sanitizeFilename = require('sanitize-filename');  // Use a package to sanitize filenames
+
+// Function to sanitize filename
+function sanitizeFilename(filename) {
+    return filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+}
 
 // Function to upload a single image to Cloudinary
 async function uploadToCloudinary(buffer, folder, filename) {
     return new Promise((resolve, reject) => {
-        const sanitizedFilename = sanitizeFilename(filename).replace(/\s+/g, '_');  // Sanitize and replace spaces with underscores
+        const sanitizedFilename = sanitizeFilename(filename);  // Sanitize and replace spaces with underscores
         const stream = cloudinary.uploader.upload_stream(
             { folder: folder, public_id: sanitizedFilename },
             (error, result) => {
@@ -39,9 +43,6 @@ async function createAlbumController(req, res) {
         // Validate the required fields
         if (!albumname) {
             return res.status(400).json({ message: 'Album name is required' });
-        }
-        if (!starname) {
-            return res.status(400).json({ message: 'Star ID is required' });
         }
 
         // Check if files are present in the request
@@ -88,7 +89,7 @@ async function createAlbumController(req, res) {
         const savedAlbum = await newAlbum.save();
 
         // Update the corresponding star collection document with the new album ID
-        const updateResult = await createStarSchema.findByIdAndUpdate(   // find by id and update
+        const updateResult = await createStarSchema.findByIdAndUpdate(
             starname,  // Update by star ID
             { $push: { starAlbums: savedAlbum._id } },  // Assuming 'starAlbums' is the field in the star schema
             { new: true }

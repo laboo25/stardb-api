@@ -27,14 +27,8 @@ async function createStarBioController(req, res) {
             boobs
         } = req.body;
 
-        if (!starname || !birthdate) {
-            return res.status(400).json({ message: 'starname and birthdate are required' });
-        }
-
-        // Check if a star bio with the same starname and birthdate already exists
-        const existingStarBio = await starBioSchema.findOne({ starname, birthdate });
-        if (existingStarBio) {
-            return res.status(400).json({ message: 'A star bio with the same starname and birthdate already exists' });
+        if (!starname) {
+            return res.status(400).json({ message: 'starname is required' });
         }
 
         // Validate starname
