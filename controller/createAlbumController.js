@@ -1,16 +1,21 @@
 const albumsSchema = require('../models/albumsSchema');
 const createStarSchema = require('../models/newStarSchema');  // Model for the star collection
 const cloudinary = require('../config/cloudinaryConfig');
+const sanitizeFilename = require('sanitize-filename');  // Use a package to sanitize filenames
 
 // Function to upload a single image to Cloudinary
 async function uploadToCloudinary(buffer, folder, filename) {
     return new Promise((resolve, reject) => {
-        const stream = cloudinary.uploader.upload_stream({ folder: folder, public_id: filename }, (error, result) => {
-            if (error) {
-                return reject(error);
+        const sanitizedFilename = sanitizeFilename(filename).replace(/\s+/g, '_');  // Sanitize and replace spaces with underscores
+        const stream = cloudinary.uploader.upload_stream(
+            { folder: folder, public_id: sanitizedFilename },
+            (error, result) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve(result);
             }
-            resolve(result);
-        });
+        );
         stream.end(buffer);
     });
 }
