@@ -12,7 +12,11 @@ const port = process.env.PORT || 3000; // Use PORT environment variable or defau
 mongoDbConfig();
 
 // Middleware to enable CORS
-app.use(cors());
+app.use(cors({
+  origin: 'http://your-frontend-origin.com', // Replace with your frontend origin
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Middleware to parse JSON bodies
 app.use(bodyParser.json());
