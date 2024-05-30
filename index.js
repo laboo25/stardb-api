@@ -13,7 +13,7 @@ mongoDbConfig();
 
 // Middleware to enable CORS
 app.use(cors({
-  origin: 'http://your-frontend-origin.com', // Replace with your frontend origin
+  origin: '*', // Replace with your frontend origin
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
