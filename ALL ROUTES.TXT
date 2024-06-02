@@ -17,5 +17,20 @@ ____________________________get methods: _______________________________________
 
             http://localhost:1769/api/stars/albums/get-all-albums
             
-            http://localhost:1769/api/stars/
+            https://stardb-api.onrender.com/api/stars/images/get-all-images
 https://stardb-api.onrender.com/api/stars/star-bio/get-all-bio
+
+_______________________________________________________________________________________________
+
+____________________________________________________________________________________________
+			http://localhost:1769/api/stars/albums/delete-album
+			http://localhost:1769/api/stars/albums/update
+			
+			http://localhost:1769/api/stars/create-star/delete-star
+			http://localhost:1769/api/stars/create-star/update-star
+
+			http://localhost:1769/api/stars/star-bio/delete-bio
+			http://localhost:1769/api/stars/star-bio/update-bio
+
+
+

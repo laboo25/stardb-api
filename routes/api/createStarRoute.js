@@ -1,11 +1,10 @@
-// routes/api/createStarRoute.js
-
 const express = require('express');
 const router = express.Router();
 const upload = require('../../helper/multerHelpers');
 const createStarController = require('../../controller/createStarController');
 const getAllStar = require('../../controller/getAllStar');
-const { updateStarController, deleteStarController } = require('../../controller/modifyStarController');
+const updateStarController = require('../../controller/updateStarController');
+const deleteStarController = require('../../controller/deleteStarController');
 
 // Define the fields to accept in the request
 const uploadFields = [
@@ -15,8 +14,8 @@ const uploadFields = [
 
 // Use the correct field names in upload.fields()
 router.post('/create-new-star', upload.fields(uploadFields), createStarController);
-router.delete('/delete-star', deleteStarController)
-router.put('/update-star', updateStarController)
-router.get('/get-all-star', getAllStar)
+router.delete('/delete-star/:starId/:field?', deleteStarController);
+router.put('/update-star/:starId', upload.fields(uploadFields), updateStarController);
+router.get('/get-all-star', getAllStar);
 
 module.exports = router;

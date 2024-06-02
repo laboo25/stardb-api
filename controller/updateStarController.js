@@ -1,6 +1,12 @@
 const newStarSchema = require("../models/newStarSchema");
 const cloudinary = require('../config/cloudinaryConfig');
-const path = require('path');
+
+// Function to delete an image from Cloudinary
+async function deleteImageFromCloudinary(imageUrl) {
+    if (!imageUrl) return;
+    const publicId = imageUrl.split('/').slice(-2).join('/').split('.')[0];
+    return cloudinary.uploader.destroy(publicId);
+}
 
 // Function to upload a single image to Cloudinary with transformations and custom filename
 function uploadToCloudinary(buffer, filename, isProfile, transformations) {
@@ -8,6 +14,7 @@ function uploadToCloudinary(buffer, filename, isProfile, transformations) {
         const sanitizedFilename = filename.trim().replace(/\s+/g, '_'); // Remove spaces and replace with underscores
         const folder = isProfile ? 'avatars' : 'covers'; // Determine folder based on isProfile flag
         const public_id = `${sanitizedFilename}_${isProfile ? 'profile' : 'cover'}`; // Construct public_id with sanitized filename and type
+
         const stream = cloudinary.uploader.upload_stream(
             {
                 folder,
@@ -27,57 +34,62 @@ function uploadToCloudinary(buffer, filename, isProfile, transformations) {
     });
 }
 
-async function createStarController(req, res) {
+async function updateStarController(req, res) {
     try {
-        const { starname } = req.body; // Extract data from request body
+        const { starId } = req.params;
+        const { starname } = req.body;
 
-        // Check for duplicate starname
-        const duplicate = await newStarSchema.findOne({ starname });
-        if (duplicate) {
-            return res.status(409).json({ message: 'Star already exists' });
+        // Check if the star exists
+        const star = await newStarSchema.findById(starId);
+        if (!star) {
+            return res.status(404).json({ message: 'Star not found' });
         }
 
         // Initialize variables for image URLs
-        let starprofileUrl = '';
-        let starcoverUrl = '';
+        let starprofileUrl = star.starprofile;
+        let starcoverUrl = star.starcover;
 
-        // Upload profile image if it exists
+        // Upload new profile image if provided
         if (req.files && req.files.starprofile) {
+            if (star.starprofile) {
+                await deleteImageFromCloudinary(star.starprofile); // Delete old profile image
+            }
             const avatarResult = await uploadToCloudinary(
                 req.files.starprofile[0].buffer,
-                starname, // Use starname as the filename for profile image
+                starname || star.starname, // Use updated starname or existing starname
                 true, // Indicate it's a profile image
-                [{ width: 1200, crop: "limit" }]
+                [{ width: 2000, crop: "limit" }]
             );
             starprofileUrl = avatarResult.secure_url;
         }
 
-        // Upload cover image if it exists
+        // Upload new cover image if provided
         if (req.files && req.files.starcover) {
+            if (star.starcover) {
+                await deleteImageFromCloudinary(star.starcover); // Delete old cover image
+            }
             const coverImageResult = await uploadToCloudinary(
                 req.files.starcover[0].buffer,
-                starname, // Use starname as the filename for cover image
+                starname || star.starname, // Use updated starname or existing starname
                 false, // Indicate it's not a profile image
                 [{ width: 500, crop: "limit" }]
             );
             starcoverUrl = coverImageResult.secure_url;
         }
 
-        // Create a new star object with image URLs
-        const newStar = new newStarSchema({
-            starname,
-            starprofile: starprofileUrl,
-            starcover: starcoverUrl,
-        });
+        // Update star data
+        star.starname = starname || star.starname;
+        star.starprofile = starprofileUrl;
+        star.starcover = starcoverUrl;
 
-        // Save the new star object to the database
-        const savedStar = await newStar.save();
+        // Save the updated star object to the database
+        const updatedStar = await star.save();
 
-        res.status(201).json(savedStar); // Respond with the saved star object
+        res.status(200).json(updatedStar); // Respond with the updated star object
     } catch (error) {
-        console.error('Error creating star:', error);
+        console.error('Error updating star:', error);
         res.status(500).json({ message: 'Internal Server Error' });
     }
 }
 
-module.exports = createStarController;
+module.exports = updateStarController;
