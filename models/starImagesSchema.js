@@ -2,10 +2,10 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const starImagesSchema = new Schema({
-    starname: {
+    starname: [{
         type: Schema.Types.ObjectId,
         ref: 'starList'
-    },
+    }],
     starImages: [{
         imageurl: { type: String, required: true },
         imageThumb: { type: String },
