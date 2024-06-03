@@ -12,21 +12,22 @@ function createThumbnailUrl(url) {
 }
 
 async function createStarImagesController(req, res) {
-    console.log('createStarImagesController');
     try {
-        const { starname: starId, subfolder } = req.body; // Extract starname (ID) and subfolder from request body
+        const { starname: starIds, subfolder, tags } = req.body; // Extract starname (IDs), subfolder, and tags from request body
 
-        let star = null;
-        if (starId) {
-            // Validate if starId is a valid ObjectId
-            if (!mongoose.Types.ObjectId.isValid(starId)) {
-                return res.status(400).json({ message: 'Invalid star ID' });
+        let stars = [];
+        if (starIds && starIds.length > 0) {
+            // Validate if each starId is a valid ObjectId
+            for (const starId of starIds) {
+                if (!mongoose.Types.ObjectId.isValid(starId)) {
+                    return res.status(400).json({ message: 'Invalid star ID' });
+                }
             }
 
-            // Fetch the actual star document from the database using the ID if provided
-            star = await createStarSchema.findById(starId);
-            if (!star) {
-                return res.status(404).json({ message: 'Star not found' });
+            // Fetch the actual star documents from the database using the IDs if provided
+            stars = await createStarSchema.find({ _id: { $in: starIds } });
+            if (stars.length !== starIds.length) {
+                return res.status(404).json({ message: 'One or more stars not found' });
             }
         }
 
@@ -42,9 +43,10 @@ async function createStarImagesController(req, res) {
             const batchFiles = req.files.slice(i, i + 5); // Get the next batch of files
             const batchUploads = batchFiles.map(file => {
                 return new Promise((resolve, reject) => {
+                    const folderPath = subfolder ? `images/${subfolder}` : 'images'; // Define folder path including subfolder if provided
                     const stream = cloudinary.uploader.upload_stream({
-                        folder: `images`,
-                        public_id: `${starId || 'generic'}-images/${file.originalname}-${Date.now()}`
+                        folder: folderPath,
+                        public_id: `${starIds.join('-') || 'generic'}-images/${file.originalname}-${Date.now()}`
                     }, (error, result) => {
                         if (error) {
                             reject(error);
@@ -65,22 +67,22 @@ async function createStarImagesController(req, res) {
         const images = uploadResults.flat().map(result => ({
             imageurl: result.secure_url,
             imageThumb: createThumbnailUrl(result.secure_url),
-            tags: result.tags || req.body.tags || [] // Get tags from Cloudinary result or request body
+            tags: tags ? tags.split(',').map(tag => tag.trim()) : [] // Get tags from request body, split and trim them
         }));
 
         // Create a new starImages object
         const newStarImages = new starImagesSchema({
-            starname: starId || undefined, // Use the star ID for the starname field in starImagesSchema, or undefined if not provided
+            starname: starIds || [], // Use the star IDs for the starname field in starImagesSchema, or an empty array if not provided
             starImages: images,
         });
 
         // Save the new starImages object to the database
         const savedStarImages = await newStarImages.save();
 
-        if (starId) {
-            // Update the corresponding star collection document with the new starImages ID
-            await createStarSchema.findByIdAndUpdate(
-                starId, // Update by star ID
+        if (starIds && starIds.length > 0) {
+            // Update the corresponding star collection documents with the new starImages ID
+            await createStarSchema.updateMany(
+                { _id: { $in: starIds } }, // Update by star IDs
                 { $push: { starImages: savedStarImages._id } }, // Correct the field name
                 { new: true }
             );
