@@ -1,5 +1,5 @@
 const albumsSchema = require('../models/albumsSchema');
-const createStarSchema = require('../models/newStarSchema');  // Model for the star collection
+const starSchema = require('../models/newStarSchema');  // Model for the star collection
 const cloudinary = require('../config/cloudinaryConfig');
 
 // Function to sanitize filename
@@ -35,14 +35,14 @@ function createThumbnailUrl(url) {
 async function createAlbumController(req, res) {
     console.log('createAlbumController');
     try {
-        const { albumname, starname } = req.body;  // Extract album name and star ID from request body
+        const { albumname, starname, tags } = req.body;  // Extract album name, star IDs, and tags from request body
 
         // Log the incoming data to check if they are correctly sent
         console.log('Request body:', req.body);
 
         // Validate the required fields
-        if (!albumname) {
-            return res.status(400).json({ message: 'Album name is required' });
+        if (!albumname || !starname || !Array.isArray(starname) || starname.length === 0) {
+            return res.status(400).json({ message: 'Album name and star IDs are required' });
         }
 
         // Check if files are present in the request
@@ -75,27 +75,29 @@ async function createAlbumController(req, res) {
         const albumImages = uploadResults.flat().map(result => ({
             imageurl: result.secure_url,
             thumburl: createThumbnailUrl(result.secure_url),
-            tags: result.tags || req.body.tags || []  // Get tags from Cloudinary result or request body
+            tags: tags || []  // Get tags from request body or initialize with empty array
         }));
 
         // Create a new album object
         const newAlbum = new albumsSchema({
             albumname: albumname,
             albumimages: albumImages,
-            starname: starname  // Directly use the star ID from the request body
+            starname: starname  // Use the array of star IDs from the request body
         });
 
         // Save the new album object to the database
         const savedAlbum = await newAlbum.save();
 
-        // Update the corresponding star collection document with the new album ID
-        const updateResult = await createStarSchema.findByIdAndUpdate(
-            starname,  // Update by star ID
-            { $push: { starAlbums: savedAlbum._id } },  // Assuming 'starAlbums' is the field in the star schema
-            { new: true }
-        );
+        // Update the corresponding star collection documents with the new album ID
+        const updateResults = await Promise.all(starname.map(starId => {
+            return starSchema.findByIdAndUpdate(
+                starId,  // Update by star ID
+                { $push: { starAlbums: savedAlbum._id } },  // Assuming 'starAlbums' is the field in the star schema
+                { new: true }
+            );
+        }));
 
-        console.log('Update Result:', updateResult);
+        console.log('Update Results:', updateResults);
 
         res.status(201).json(savedAlbum);  // Respond with the saved album object
     } catch (error) {
