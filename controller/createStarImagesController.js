@@ -31,7 +31,10 @@ async function createStarImagesController(req, res) {
             return res.status(400).json({ message: 'No images provided' });
         }
 
+        // Sanitize subfolder name
         const sanitizedSubfolder = subfolder ? subfolder.replace(/\s+/g, '-') : 'images';
+
+        // Upload images to Cloudinary
         const uploadQueue = [];
         for (let i = 0; i < req.files.length; i += 5) {
             const batchFiles = req.files.slice(i, i + 5);
@@ -39,7 +42,7 @@ async function createStarImagesController(req, res) {
                 return new Promise((resolve, reject) => {
                     const folderPath = `images/${sanitizedSubfolder}`;
                     const sanitizedFilename = file.originalname.replace(/\s+/g, '-');
-                    const publicId = `${starIds.join('-') || 'generic'}-images/${sanitizedFilename}-${Date.now()}`;
+                    const publicId = `${starIds ? starIds.join('-') : 'generic'}-images/${sanitizedFilename}-${Date.now()}`;
                     const stream = cloudinary.uploader.upload_stream({
                         folder: folderPath,
                         public_id: publicId
@@ -57,19 +60,23 @@ async function createStarImagesController(req, res) {
         }
 
         const uploadResults = await Promise.all(uploadQueue.flat());
+
+        // Create images array with URLs and thumbnails
         const images = uploadResults.flat().map(result => ({
             imageurl: result.secure_url,
             imageThumb: createThumbnailUrl(result.secure_url),
             tags: tags ? tags.split(',').map(tag => tag.trim()) : []
         }));
 
+        // Save images in the starImages schema
         const newStarImages = new starImagesSchema({
-            starname: starIds || [],
+            starname: starIds || [], // Optional starname
             starImages: images,
         });
 
         const savedStarImages = await newStarImages.save();
 
+        // Update star documents if starIds are provided
         if (starIds && starIds.length > 0) {
             await createStarSchema.updateMany(
                 { _id: { $in: starIds } },
