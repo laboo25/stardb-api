@@ -1,16 +1,14 @@
 const albumsSchema = require('../models/albumsSchema');
-const starSchema = require('../models/newStarSchema');  // Model for the star collection
+const starSchema = require('../models/newStarSchema');
 const cloudinary = require('../config/cloudinaryConfig');
 
-// Function to sanitize filename
 function sanitizeFilename(filename) {
     return filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
 }
 
-// Function to upload a single image to Cloudinary
 async function uploadToCloudinary(buffer, folder, filename) {
+    const sanitizedFilename = sanitizeFilename(filename);
     return new Promise((resolve, reject) => {
-        const sanitizedFilename = sanitizeFilename(filename);  // Sanitize and replace spaces with underscores
         const stream = cloudinary.uploader.upload_stream(
             { folder: folder, public_id: sanitizedFilename },
             (error, result) => {
@@ -24,7 +22,6 @@ async function uploadToCloudinary(buffer, folder, filename) {
     });
 }
 
-// Function to create a webp thumbnail URL with max size 300px, crop limit
 function createThumbnailUrl(url) {
     const parts = url.split('upload/');
     const baseUrl = parts[0] + 'upload/';
@@ -33,73 +30,51 @@ function createThumbnailUrl(url) {
 }
 
 async function createAlbumController(req, res) {
-    console.log('createAlbumController');
+    console.log('createAlbumController invoked');
     try {
-        const { albumname, starname, tags } = req.body;  // Extract album name, star IDs, and tags from request body
+        const { albumname, starname, tags } = req.body;
 
-        // Log the incoming data to check if they are correctly sent
-        console.log('Request body:', req.body);
-
-        // Validate the required fields
-        if (!albumname || !starname || !Array.isArray(starname) || starname.length === 0) {
-            return res.status(400).json({ message: 'Album name and star IDs are required' });
+        if (!albumname) {
+            return res.status(400).json({ message: 'Album name is required' });
         }
 
-        // Check if files are present in the request
         if (!req.files || req.files.length === 0) {
             return res.status(400).json({ message: 'No images provided' });
         }
 
-        const uploadQueue = [];  // Queue to hold upload promises
-
-        // Upload files in batches of 5
-        for (let i = 0; i < req.files.length; i += 5) {
-            const batchFiles = req.files.slice(i, i + 5);  // Get the next batch of files
-            const batchUploads = batchFiles.map(file => {
-                return new Promise(async (resolve, reject) => {
-                    try {
-                        const result = await uploadToCloudinary(file.buffer, `albums/${albumname}`, file.originalname);  // Pass the original filename to upload function
-                        resolve(result);
-                    } catch (error) {
-                        reject(error);
-                    }
-                });
-            });
-            uploadQueue.push(Promise.all(batchUploads));  // Push the batch upload promise to the queue
-        }
-
-        // Wait for all batches to upload
-        const uploadResults = await Promise.all(uploadQueue.flat());
-
-        // Extract URLs and create album images array
-        const albumImages = uploadResults.flat().map(result => ({
-            imageurl: result.secure_url,
-            thumburl: createThumbnailUrl(result.secure_url),
-            tags: tags || []  // Get tags from request body or initialize with empty array
-        }));
-
-        // Create a new album object
-        const newAlbum = new albumsSchema({
-            albumname: albumname,
-            albumimages: albumImages,
-            starname: starname  // Use the array of star IDs from the request body
+        const albumPromises = req.files.map(async (file) => {
+            const result = await uploadToCloudinary(file.buffer, `albums/${albumname}`, file.originalname);
+            return {
+                imageurl: result.secure_url,
+                thumburl: createThumbnailUrl(result.secure_url),
+                tags: tags || []
+            };
         });
 
-        // Save the new album object to the database
+        const albumImages = await Promise.all(albumPromises);
+
+        // Ensure starname is treated as an array
+        const starnameArray = Array.isArray(starname) ? starname : (starname ? [starname] : []);
+
+        const newAlbum = new albumsSchema({
+            albumname,
+            albumimages: albumImages,
+            starname: starnameArray
+        });
+
         const savedAlbum = await newAlbum.save();
 
-        // Update the corresponding star collection documents with the new album ID
-        const updateResults = await Promise.all(starname.map(starId => {
+        await Promise.all(starnameArray.map(starId => {
             return starSchema.findByIdAndUpdate(
-                starId,  // Update by star ID
-                { $push: { starAlbums: savedAlbum._id } },  // Assuming 'starAlbums' is the field in the star schema
+                starId,
+                { $push: { starAlbums: savedAlbum._id } },
                 { new: true }
             );
         }));
 
-        console.log('Update Results:', updateResults);
+        console.log('Album created successfully:', savedAlbum);
 
-        res.status(201).json(savedAlbum);  // Respond with the saved album object
+        res.status(201).json(savedAlbum);
     } catch (error) {
         console.error('Error in createAlbumController:', error);
         res.status(500).json({ message: 'Internal Server Error' });
