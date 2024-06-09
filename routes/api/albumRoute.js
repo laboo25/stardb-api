@@ -7,7 +7,7 @@ const createAlbumController = require('../../controller/createAlbumController');
 const { deleteAlbumController, updateAlbumController } = require('../../controller/modifyAlbumController');
 const getAllAlbums = require('../../controller/getAllAlbums');
 
-router.post('/create-album', upload.array('albums', 100), createAlbumController);
+router.post('/create-album', upload.array('albums', 999), createAlbumController);
 router.put('/update', updateAlbumController)
 router.delete('/delete-album', deleteAlbumController)
 router.get('/get-all-albums', getAllAlbums)
