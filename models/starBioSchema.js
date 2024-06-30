@@ -32,6 +32,8 @@ const starBioSchema = new Schema({
     skills: [{ type: String }],
     pubic: { type: String },
     boobs: { type: String },
+}, {
+    timestamps: true
 });
 
 module.exports = mongoose.model('starBio', starBioSchema);
