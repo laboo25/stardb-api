@@ -11,8 +11,9 @@ const albumsSchema = new Schema({
     starname: [{
         type: Schema.Types.ObjectId,
         ref: 'starList',  // Ensure this references the correct model
-        
     }]
+}, {
+    timestamps: true
 });
 
 module.exports = mongoose.model('starAlbum', albumsSchema);
