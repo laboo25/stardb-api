@@ -24,6 +24,8 @@ const createStarSchema = new Schema({
         type: Schema.Types.ObjectId,
         ref: 'starAlbum'
     }]
+}, {
+    timestamps: true
 });
 
 module.exports = mongoose.model('starList', createStarSchema);
