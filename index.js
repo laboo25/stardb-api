@@ -11,6 +11,8 @@ const port = process.env.PORT || 3000; // Use PORT environment variable or defau
 // Call the mongoDbConfig function to establish the database connection
 mongoDbConfig();
 
+
+
 // Middleware to enable CORS
 app.use(cors({
   origin: '*', // Replace with your frontend origin
@@ -19,8 +21,8 @@ app.use(cors({
 }));
 
 // Middleware to parse JSON bodies
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json({ limit: '50mb' }));
+app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 app.get('/', (req, res) => {
     console.log('Server is running....');
