@@ -29,6 +29,8 @@ app.get('/', (req, res) => {
 
 app.use('/api', apiRoute);
 
-app.listen(port, () => {
+const server = app.listen(port, () => {
     console.log(`Server is running on port http://localhost:${port}`);
 });
+
+server.setTimeout(10 * 60 * 1000);
