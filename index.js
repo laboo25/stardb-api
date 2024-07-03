@@ -21,8 +21,8 @@ app.use(cors({
 }));
 
 // Middleware to parse JSON bodies
-app.use(bodyParser.json({ limit: '50mb' }));
-app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
+app.use(bodyParser.json({ limit: '300mb' }));
+app.use(bodyParser.urlencoded({ limit: '300mb', extended: true }));
 
 app.get('/', (req, res) => {
     console.log('Server is running....');
