@@ -1,30 +1,69 @@
-const albumsSchema = require('../models/albumsSchema'); // Adjust the path as per your project structure
+const albumsSchema = require('../models/albumsSchema');
+const cloudinary = require('../config/cloudinaryConfig');
+
+function sanitizeFilename(filename) {
+    return filename.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+}
+
+async function uploadToCloudinary(buffer, folder, filename) {
+    const sanitizedFilename = sanitizeFilename(filename);
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { folder: folder, public_id: sanitizedFilename },
+            (error, result) => {
+                if (error) {
+                    return reject(error);
+                }
+                resolve(result);
+            }
+        );
+        stream.end(buffer);
+    });
+}
+
+function createThumbnailUrl(url) {
+    const parts = url.split('upload/');
+    const baseUrl = parts[0] + 'upload/';
+    const imageUrl = parts[1];
+    return `${baseUrl}c_limit,w_300,h_300,q_auto,f_webp/${imageUrl}`;
+}
 
 const updateAlbumController = async (req, res) => {
     try {
         const albumId = req.params.albumId;
-        const { albumname, albumimages } = req.body;
+        const { albumname, starname } = req.body;
+        const files = req.files;
 
-        // Basic validation
-        if (!albumname || !albumimages || !Array.isArray(albumimages)) {
-            return res.status(400).json({ message: 'Invalid request body' });
+        if (!albumname) {
+            return res.status(400).json({ message: 'Album name is required' });
         }
 
-        // Example update logic:
-        const updatedAlbum = await albumsSchema.findByIdAndUpdate(
-            albumId,
-            { albumname, albumimages },
-            { new: true } // To return the updated document
-        );
-
-        if (!updatedAlbum) {
+        const album = await albumsSchema.findById(albumId);
+        if (!album) {
             return res.status(404).json({ message: 'Album not found' });
         }
 
-        res.status(200).json({ message: 'Album updated successfully', album: updatedAlbum });
+        if (files && files.length > 0) {
+            const updatedImages = await Promise.all(files.map(async (file) => {
+                const uploadResult = await uploadToCloudinary(file.buffer, 'albums', file.originalname);
+                return {
+                    imageurl: uploadResult.secure_url,
+                    thumburl: createThumbnailUrl(uploadResult.secure_url),
+                    starname: starname,
+                    tags: []
+                };
+            }));
+            album.albumimages.push(...updatedImages);
+        }
+
+        album.albumname = albumname;
+        album.starname = starname;
+        await album.save();
+
+        res.status(200).json({ message: 'Album updated successfully', album });
     } catch (error) {
         console.error('Error updating album:', error);
-        res.status(500).json({ message: 'Internal server error' });
+        res.status(500).json({ message: 'Internal Server Error' });
     }
 };
 

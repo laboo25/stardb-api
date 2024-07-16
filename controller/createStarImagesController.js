@@ -66,7 +66,10 @@ async function createStarImagesController(req, res) {
             imageurl: result.secure_url,
             imageThumb: createThumbnailUrl(result.secure_url),
             tags: tags ? tags.split(',').map(tag => tag.trim()) : []
+
+            
         }));
+        
 
         // Save images in the starImages schema
         const newStarImages = new starImagesSchema({

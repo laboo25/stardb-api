@@ -11,18 +11,23 @@ const port = process.env.PORT || 3000; // Use PORT environment variable or defau
 // Call the mongoDbConfig function to establish the database connection
 mongoDbConfig();
 
-
-
 // Middleware to enable CORS
 app.use(cors({
-  origin: '*', // Replace with your frontend origin
+  origin: 'https://star-database.vercel.app',
+  origin: '*',
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*'); // Allow all origins
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+  next();
+});
+
 // Middleware to parse JSON bodies
-app.use(bodyParser.json({ limit: '300mb' }));
-app.use(bodyParser.urlencoded({ limit: '300mb', extended: true }));
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
     console.log('Server is running....');
@@ -31,8 +36,6 @@ app.get('/', (req, res) => {
 
 app.use('/api', apiRoute);
 
-const server = app.listen(port, () => {
+app.listen(port, () => {
     console.log(`Server is running on port http://localhost:${port}`);
 });
-
-server.setTimeout(10 * 60 * 1000);

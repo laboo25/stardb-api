@@ -2,7 +2,9 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 
 const albumsSchema = new Schema({
-    albumname: { type: String },
+    albumname: { type: String,
+        requird: true
+    },
     albumimages: [{
         imageurl: { type: String },
         thumburl: { type: String },
@@ -10,10 +12,9 @@ const albumsSchema = new Schema({
     }],
     starname: [{
         type: Schema.Types.ObjectId,
-        ref: 'starList',  // Ensure this references the correct model
+        ref: 'starList',
+        
     }]
-}, {
-    timestamps: true
 });
 
 module.exports = mongoose.model('starAlbum', albumsSchema);

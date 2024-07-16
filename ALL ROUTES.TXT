@@ -24,7 +24,7 @@ ________________________________________________________________________________
 
 ____________________________________________________________________________________________
 			http://localhost:1769/api/stars/albums/delete-album
-			http://localhost:1769/api/stars/albums/update
+			http://localhost:1769/api/stars/albums//update/:albumId
 			
 			http://localhost:1769/api/stars/create-star/delete-star
 			http://localhost:1769/api/stars/create-star/update-star
