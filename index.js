@@ -13,11 +13,17 @@ mongoDbConfig();
 
 // Middleware to enable CORS
 app.use(cors({
-  origin: 'https://star-database.vercel.app',
-  origin: '*',
+  origin: 'https://star-database.vercel.app', // https://star-database.vercel.app
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  credentials: true // Include this if you need to handle cookies or authentication
 }));
+
+// Remove the custom middleware handling CORS headers if you're using the cors package
+
+// Make sure to handle preflight requests automatically by the cors middleware
+app.options('*', cors());
+
 
 app.use((req, res, next) => {
   res.header('Access-Control-Allow-Origin', '*'); // Allow all origins

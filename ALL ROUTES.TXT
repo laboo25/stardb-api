@@ -23,7 +23,7 @@ https://stardb-api.onrender.com/api/stars/star-bio/get-all-bio
 _______________________________________________________________________________________________
 
 ____________________________________________________________________________________________
-			http://localhost:1769/api/stars/albums/delete-album
+			http://localhost:1769/api/stars/albums/delete-album/:albumId
 			http://localhost:1769/api/stars/albums//update/:albumId
 			
 			http://localhost:1769/api/stars/create-star/delete-star
@@ -33,4 +33,7 @@ ________________________________________________________________________________
 			http://localhost:1769/api/stars/star-bio/update-bio
 
 
+railway => https://star-database-api.up.railway.app
+render => https://stardb-api.onrender.com
+vercel => https://stardb-api.vercel.app
 

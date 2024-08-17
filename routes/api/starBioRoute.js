@@ -8,8 +8,8 @@ const router = express.Router();
 
 
 router.post('/create-star-bio', createStarBioController);
-router.delete('/delete-bio', deleteStarBioController)
-router.put('/update-bio', updateStarBioController)
+router.delete('/delete-bio/:starBioId', deleteStarBioController)
+router.put('/update-bio/:starBioId', updateStarBioController)
 router.get('/get-all-bio', getAllBio)
 
 module.exports = router

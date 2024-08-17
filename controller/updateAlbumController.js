@@ -7,7 +7,8 @@ function sanitizeFilename(filename) {
 }
 
 async function uploadToCloudinary(buffer, folder, filename) {
-    const sanitizedFilename = sanitizeFilename(filename);
+    const timestamp = Date.now();
+    const sanitizedFilename = sanitizeFilename(`${filename}_${timestamp}`);
     return new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
             { folder: folder, public_id: sanitizedFilename },
@@ -29,60 +30,64 @@ function createThumbnailUrl(url) {
     return `${baseUrl}c_limit,w_300,h_300,q_auto,f_webp/${imageUrl}`;
 }
 
-async function createAlbumController(req, res) {
-    console.log('createAlbumController invoked');
+async function updateAlbumController(req, res) {
+    console.log('updateAlbumController invoked');
     try {
+        const { albumId } = req.params;
         const { albumname, starname, tags } = req.body;
 
-        if (!albumname) {
-            return res.status(400).json({ message: 'Album name is required' });
+        if (!albumId) {
+            return res.status(400).json({ message: 'Album ID is required' });
         }
 
-        if (!req.files || req.files.length === 0) {
-            return res.status(400).json({ message: 'No images provided' });
+        const album = await albumsSchema.findById(albumId);
+        if (!album) {
+            return res.status(404).json({ message: 'Album not found' });
         }
 
-        const albumPromises = req.files.map(async (file) => {
-            console.log(`Uploading file: ${file.originalname}`);
-            const result = await uploadToCloudinary(file.buffer, `albums/${albumname}`, file.originalname);
-            console.log(`Uploaded file: ${result.secure_url}`);
-            return {
-                imageurl: result.secure_url,
-                thumburl: createThumbnailUrl(result.secure_url),
-                tags: tags || []
-            };
-        });
+        if (albumname) {
+            album.albumname = albumname;
+        }
 
-        const albumImages = await Promise.all(albumPromises);
-        console.log('All images uploaded');
+        if (req.files && req.files.length > 0) {
+            const albumPromises = req.files.map(async (file) => {
+                const result = await uploadToCloudinary(file.buffer, `albums/${albumname || album.albumname}`, file.originalname);
+                return {
+                    imageurl: result.secure_url,
+                    thumburl: createThumbnailUrl(result.secure_url),
+                    tags: tags || []
+                };
+            });
 
-        const starnameArray = Array.isArray(starname) ? starname : (starname ? [starname] : []);
+            const newAlbumImages = await Promise.all(albumPromises);
+            album.albumimages.push(...newAlbumImages);
+        }
 
-        const newAlbum = new albumsSchema({
-            albumname,
-            albumimages: albumImages,
-            starname: starnameArray
-        });
+        // const starnameArray = Array.isArray(starname) ? starname : (starname ? [starname] : []);
+        const starnameArray = Array.isArray(starname) ? starname.map(id => mongoose.Types.ObjectId(id)) : [];
 
-        const savedAlbum = await newAlbum.save();
-        console.log('Album saved to database:', savedAlbum);
+        if (starnameArray.length > 0) {
+            album.starname = starnameArray;
+        }
+
+        const updatedAlbum = await album.save();
 
         await Promise.all(starnameArray.map(starId => {
-            console.log(`Updating star schema for starId: ${starId}`);
             return starSchema.findByIdAndUpdate(
                 starId,
-                { $push: { starAlbums: savedAlbum._id } },
+                { $push: { starAlbums: updatedAlbum._id } },
                 { new: true }
             );
         }));
 
-        console.log('Album created successfully:', savedAlbum);
+        console.log('Album updated successfully:', updatedAlbum);
 
-        res.status(201).json(savedAlbum);
+        res.status(200).json(updatedAlbum);
     } catch (error) {
-        console.error('Error in createAlbumController:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        console.error('Error in updateAlbumController:', error);
+        res.status(500).json({ message: 'Internal Server Error', error: error.message });
     }
 }
 
-module.exports = createAlbumController;
+
+module.exports = updateAlbumController;
