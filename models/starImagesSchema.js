@@ -11,7 +11,7 @@ const starImagesSchema = new Schema({
         imageThumb: { type: String },
         tags: [{ type: String }]
     }],
-});
+},{timestamps: true});
 
 module.exports = mongoose.model('starImage', starImagesSchema);
 

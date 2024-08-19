@@ -23,8 +23,7 @@ https://stardb-api.onrender.com/api/stars/star-bio/get-all-bio
 _______________________________________________________________________________________________
 
 ____________________________________________________________________________________________
-			http://localhost:1769/api/stars/albums/delete-album/:albumId
-			http://localhost:1769/api/stars/albums//update/:albumId
+			http://localhost:1769/api/stars/albums/delete-album/:albumId/:imageId?									http://localhost:1769/api/stars/albums//update/:albumId
 			
 			http://localhost:1769/api/stars/create-star/delete-star
 			http://localhost:1769/api/stars/create-star/update-star

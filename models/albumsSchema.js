@@ -15,6 +15,6 @@ const albumsSchema = new Schema({
         ref: 'starList',
         
     }]
-});
+},{timestamps: true});
 
 module.exports = mongoose.model('starAlbum', albumsSchema);

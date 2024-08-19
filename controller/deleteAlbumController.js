@@ -28,18 +28,18 @@ async function deleteAlbumController(req, res) {
             await cloudinary.uploader.destroy(publicId);
 
             // Remove image from albumimages array
-            image.remove();
+            album.albumimages.pull({ _id: imageId });
             await album.save();
 
-            res.status(200).json({ message: 'Image deleted successfully from album' });
+            return res.status(200).json({ message: 'Image deleted successfully from album' });
         } else {
             // If imageId is not provided, delete the entire album
 
             // Delete images from Cloudinary
-            for (const image of album.albumimages) {
+            await Promise.all(album.albumimages.map(async (image) => {
                 const publicId = image.imageurl.split('/').pop().split('.')[0];
                 await cloudinary.uploader.destroy(publicId);
-            }
+            }));
 
             // Delete the album
             await albumsSchema.findByIdAndDelete(albumId);
@@ -50,13 +50,12 @@ async function deleteAlbumController(req, res) {
                 { $pull: { starAlbums: albumId } }
             );
 
-            res.status(200).json({ message: 'Album deleted successfully' });
+            return res.status(200).json({ message: 'Album deleted successfully' });
         }
     } catch (error) {
         console.error('Error in deleteAlbumController:', error);
-        res.status(500).json({ message: 'Internal Server Error' });
+        return res.status(500).json({ message: 'Internal Server Error' });
     }
 }
 
-module.exports = deleteAlbumController
-
+module.exports = deleteAlbumController;
