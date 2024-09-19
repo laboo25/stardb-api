@@ -1,4 +1,4 @@
-require('dotenv').config(); // Load environment variables from .env file
+require('dotenv').config();
 const express = require('express');
 const bodyParser = require('body-parser');
 const cors = require('cors');
@@ -6,42 +6,46 @@ const app = express();
 const apiRoute = require('./routes/index');
 const mongoDbConfig = require('./config/mongoDbConfig');
 
-const port = process.env.PORT || 3000; // Use PORT environment variable or default to 3000
+// Use PORT environment variable or default to 3000
+const port = process.env.PORT || 3000;
 
 // Call the mongoDbConfig function to establish the database connection
 mongoDbConfig();
 
 // Middleware to enable CORS
 app.use(cors({
-  origin: 'https://star-database.vercel.app', // https://star-database.vercel.app
+  origin: 'https://star-database.vercel.app', 
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  credentials: true // Include this if you need to handle cookies or authentication
+  credentials: true
 }));
 
-// Remove the custom middleware handling CORS headers if you're using the cors package
-
-// Make sure to handle preflight requests automatically by the cors middleware
+// Automatically handle preflight requests
 app.options('*', cors());
 
+// Middleware to parse JSON bodies with even larger payload size limit
+app.use(bodyParser.json({ limit: '300mb' })); 
+app.use(bodyParser.urlencoded({ limit: '300mb', extended: true }));
 
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*'); // Allow all origins
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept');
+// Error handling middleware for large payloads and other errors
+app.use((err, req, res, next) => {
+  if (err instanceof SyntaxError) {
+    return res.status(400).json({ message: 'Bad Request: Invalid JSON' });
+  } else if (err.code === 'LIMIT_FILE_SIZE') {
+    return res.status(413).json({ message: 'File too large. Maximum size allowed is 300MB per file.' });
+  }
   next();
 });
 
-// Middleware to parse JSON bodies
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-
+// Route to test if server is running
 app.get('/', (req, res) => {
-    console.log('Server is running....');
-    res.send('Server is running....');
+  res.send('Server is running....');
 });
 
+// Routes for your API
 app.use('/api', apiRoute);
 
+// Start the server
 app.listen(port, () => {
-    console.log(`Server is running on port http://localhost:${port}`);
+  console.log(`Server is running on port http://localhost:${port}`);
 });
