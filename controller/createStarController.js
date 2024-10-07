@@ -1,31 +1,19 @@
 const newStarSchema = require("../models/newStarSchema");
 const cloudinary = require('../config/cloudinaryConfig');
-const sharp = require('sharp');
 
 // Function to upload a single image to Cloudinary with transformations and custom filename
-async function uploadToCloudinary(buffer, filename, isProfile, transformations, maxSizeKb) {
+async function uploadToCloudinary(buffer, filename, isProfile) {
     try {
         const sanitizedFilename = filename.trim().replace(/\s+/g, '_'); // Remove spaces and replace with underscores
         const folder = isProfile ? 'avatars' : 'covers'; // Determine folder based on isProfile flag
         const public_id = `${sanitizedFilename}_${isProfile ? 'profile' : 'cover'}`; // Construct public_id with sanitized filename and type
 
-        // Resize image to meet the maxSizeKb requirement
-        const resizedBuffer = await sharp(buffer)
-            .resize({ width: transformations[0].width, height: transformations[0].height, fit: 'inside' })
-            .toFormat('webp', { quality: 80 }) // Adjust quality as needed
-            .toBuffer();
+        // Define Cloudinary transformations for profile and cover images
+        const transformations = isProfile
+            ? [{ width: 800, height: 1200, crop: 'fill', gravity: 'face', quality: 'auto', format: 'webp' }] // 2/3 aspect ratio for profile image
+            : [{ width: 500, height: 281, crop: 'fill', gravity: 'auto', quality: 'auto', format: 'webp' }]; // 16/9 aspect ratio for cover image
 
-        // Ensure the image size is within the maxSizeKb limit
-        let finalBuffer = resizedBuffer;
-        if (resizedBuffer.length > maxSizeKb * 1024) {
-            const reduceQuality = Math.max(Math.floor((maxSizeKb * 1024) / resizedBuffer.length * 80), 30); // Min quality 30
-            finalBuffer = await sharp(buffer)
-                .resize({ width: transformations[0].width, height: transformations[0].height, fit: 'inside' })
-                .toFormat('webp', { quality: reduceQuality })
-                .toBuffer();
-        }
-
-        // Upload resized image to Cloudinary
+        // Upload image to Cloudinary
         return new Promise((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream(
                 {
@@ -42,7 +30,7 @@ async function uploadToCloudinary(buffer, filename, isProfile, transformations, 
                     }
                 }
             );
-            stream.end(finalBuffer);
+            stream.end(buffer);
         });
     } catch (error) {
         throw new Error(`Error processing image: ${error.message}`);
@@ -68,9 +56,7 @@ async function createStarController(req, res) {
             const avatarResult = await uploadToCloudinary(
                 req.files.starprofile[0].buffer,
                 starname, // Use starname as the filename for profile image
-                true, // Indicate it's a profile image
-                [{ width: 1200, crop: "limit" }], // Transformations
-                90 // Max size in KB for profile image
+                true // Indicate it's a profile image
             );
             starprofileUrl = avatarResult.secure_url;
         }
@@ -80,9 +66,7 @@ async function createStarController(req, res) {
             const coverImageResult = await uploadToCloudinary(
                 req.files.starcover[0].buffer,
                 starname, // Use starname as the filename for cover image
-                false, // Indicate it's not a profile image
-                [{ width: 500, crop: "limit" }], // Transformations
-                17 // Max size in KB for cover image
+                false // Indicate it's not a profile image
             );
             starcoverUrl = coverImageResult.secure_url;
         }
