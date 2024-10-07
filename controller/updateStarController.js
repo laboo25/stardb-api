@@ -9,20 +9,24 @@ async function deleteImageFromCloudinary(imageUrl) {
 }
 
 // Function to upload a single image to Cloudinary with transformations and custom filename
-async function uploadToCloudinary(filename, isProfile, transformations) {
+async function uploadToCloudinary(buffer, filename, isProfile) {
     try {
         const sanitizedFilename = filename.trim().replace(/\s+/g, '_'); // Remove spaces and replace with underscores
         const folder = isProfile ? 'avatars' : 'covers'; // Determine folder based on isProfile flag
         const public_id = `${sanitizedFilename}_${isProfile ? 'profile' : 'cover'}`; // Construct public_id with sanitized filename and type
 
-        // Upload image to Cloudinary with transformations
+        // Define Cloudinary transformations for avatar/profile and cover images
+        const transformation = isProfile 
+            ? { width: 800, height: 1200, crop: 'fill', gravity: 'face', quality: 'auto:good', format: 'webp' }
+            : { width: 500, height: 281, crop: 'fill', gravity: 'auto', quality: 'auto:good', format: 'webp' };
+
+        // Upload image to Cloudinary
         return new Promise((resolve, reject) => {
             const stream = cloudinary.uploader.upload_stream(
                 {
                     folder,
                     public_id,
-                    transformation: transformations,
-                    format: 'webp', // Set format to webp
+                    transformation
                 },
                 (error, result) => {
                     if (error) {
@@ -32,7 +36,7 @@ async function uploadToCloudinary(filename, isProfile, transformations) {
                     }
                 }
             );
-            stream.end(); // End the stream without using sharp for resizing
+            stream.end(buffer); // End the stream with the original image buffer
         });
     } catch (error) {
         throw new Error(`Error processing image: ${error.message}`);
@@ -60,9 +64,9 @@ async function updateStarController(req, res) {
                 await deleteImageFromCloudinary(star.starprofile); // Delete old profile image
             }
             const avatarResult = await uploadToCloudinary(
+                req.files.starprofile[0].buffer,
                 starname || star.starname, // Use updated starname or existing starname
-                true, // Indicate it's a profile image
-                [{ width: 800, height: 1200, crop: 'fill', gravity: 'center', quality: 80 }] // Resize to 2/3 aspect ratio (800px/1200px) with center gravity and quality
+                true // Indicate it's a profile image
             );
             starprofileUrl = avatarResult.secure_url;
         }
@@ -73,9 +77,9 @@ async function updateStarController(req, res) {
                 await deleteImageFromCloudinary(star.starcover); // Delete old cover image
             }
             const coverImageResult = await uploadToCloudinary(
+                req.files.starcover[0].buffer,
                 starname || star.starname, // Use updated starname or existing starname
-                false, // Indicate it's not a profile image
-                [{ width: 500, height: 281, crop: 'fill', gravity: 'center', quality: 80 }] // Resize to 16/9 aspect ratio (500px/281px) with center gravity and quality
+                false // Indicate it's not a profile image
             );
             starcoverUrl = coverImageResult.secure_url;
         }
